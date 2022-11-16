@@ -6,17 +6,16 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Erc20Vault is Ownable{
+contract Vault is Ownable{
     using SafeERC20 for IERC20;
 
     struct  Diary{
-        IERC20 Token;
-        uint256 amount;
+      IERC20 Token;
+      uint256 amount;
     }
 
-    uint public Id;
 
-    mapping (uint => Diary) public _tokeninVault;
+    mapping (address => Diary) public _tokeninVault;
 
     event Withdraw(address withdrawer, uint256 amount);
 
@@ -26,35 +25,25 @@ contract Erc20Vault is Ownable{
         require(_Token.allowance(msg.sender, address(this)) >= _amount, "Approval not given by the token contract");
 
         _Token.safeTransferFrom(msg.sender, address(this), _amount);
+        _tokeninVault[address(_Token)].Token = _Token;
 
-        uint _id;
-
-        _id = ++Id;
-        _tokeninVault[_id].Token = _Token;
-        _tokeninVault[_id].amount = _amount;
-    }
+        _tokeninVault[address(_Token)].amount += _amount;
+}
     
-    function withdraw(IERC20 _Token, address _TokenOwner, uint256 _amount)public onlyOwner{
-     uint _id;
-     _id = Id; 
+    function withdraw(IERC20 _Token, address _TokenOwner, uint256 _amount)public onlyOwner{ 
 
     require(address(_Token) != address(0), "Token address is 0");
     require(address(_TokenOwner) != address(0), "_TokenOwner address is 0");
 
-    require(_tokeninVault[_id].amount >= 0, "No amount to withdraw");
-    _tokeninVault[_id].Token = _Token;
+    require(_tokeninVault[address(_Token)].amount > 0, "No amount to withdraw");
+    _tokeninVault[address(_Token)].amount -= _amount;
 
-    _tokeninVault[_id].amount -= _amount;
-
-    _tokeninVault[_id].Token.safeTransfer(_TokenOwner, _tokeninVault[_id].amount);
-    emit Withdraw(address(_TokenOwner), _tokeninVault[_id].amount);
+    _tokeninVault[address(_Token)].Token.safeTransfer(_TokenOwner,  _tokeninVault[address(_Token)].amount);
+    emit Withdraw(address(_TokenOwner), _tokeninVault[address(_Token)].amount);
 
     }
 
-     function TotalBalanceOfToken(address _Token) view external returns (uint256) {
-       return IERC20(_Token).balanceOf(address(this));
-    }
-
+   
    
 }
     
